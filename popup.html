@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ISRO Privacy Perception Engine</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <div class="badge">ISRO SIH26171</div>
+    <h2>Privacy Perception Agent</h2>
+    <p class="subtitle">On-Device Visual & Accessibility Sanitizer</p>
+  </div>
+
+  <div class="action-bar">
+    <button id="btnCapture" class="btn-primary">🔒 Capture & Sanitize Active Tab</button>
+  </div>
+
+  <div class="metrics-card">
+    <div class="metric-item">
+      <span class="metric-label">Sanitization Latency</span>
+      <span id="txtLatency" class="metric-val">-- ms</span>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Masked PII Items</span>
+      <span id="txtPiiCount" class="metric-val">--</span>
+    </div>
+    <div class="metric-item">
+      <span class="metric-label">Privacy Guarantee</span>
+      <span id="txtStatus" class="status-badge">READY</span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tab-vision">Visual Viewport</button>
+    <button class="tab-btn" data-tab="tab-a11y">Sanitized A11y Tree</button>
+    <button class="tab-btn" data-tab="tab-payload">Outgoing Payload</button>
+  </div>
+
+  <div class="tab-content active" id="tab-vision">
+    <div class="view-container">
+      <img id="imgSanitized" class="preview-img" alt="Sanitized Canvas Output" style="display:none;" />
+      <div id="placeholder" class="placeholder">Click "Capture & Sanitize" to inspect the live active tab.</div>
+    </div>
+  </div>
+
+  <div class="tab-content" id="tab-a11y">
+    <pre id="jsonA11y">// Sanitized Accessibility Tree will appear here...</pre>
+  </div>
+
+  <div class="tab-content" id="tab-payload">
+    <pre id="jsonPayload">// Sanitized outgoing server payload will appear here...</pre>
+  </div>
+
+  <script src="accessibility_sanitizer.js"></script>
+  <script src="privacy_engine.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
