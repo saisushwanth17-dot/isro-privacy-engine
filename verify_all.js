@@ -198,6 +198,41 @@ const postFlushResolution = vault.detokenize('[SYS_PAN_01]');
 assertTrue('Post-Flush Alias Invalidation', postFlushResolution === '[SYS_PAN_01]', 'Alias safely wiped from memory');
 
 // ----------------------------------------------------------------------------
+// TEST 8: detectAndRedactPII (Regex + NER + Canvas Black Rectangles)
+// ----------------------------------------------------------------------------
+console.log('\n[TEST 8] Testing detectAndRedactPII (Regex + NER + Canvas Black Rectangles)...');
+const mockCtx = {
+  fillStyle: '',
+  fillRectCalls: [],
+  fillRect: function(x, y, w, h) {
+    this.fillRectCalls.push({ x, y, w, h, fillStyle: this.fillStyle });
+  },
+  strokeRect: function(x, y, w, h) {},
+  fillText: function(text, x, y) {}
+};
+
+const candidateElements = [
+  { type: 'input', label: 'Tax PAN Card: ABCDE1234F', bbox: [100, 150, 200, 35] },
+  { type: 'input', label: 'Scientist Dr. Vikram Sarabhai', bbox: [100, 200, 250, 35] },
+  { type: 'password', label: 'Secret Gate', value: 'MySecretPass123', bbox: [100, 250, 150, 35] }
+];
+
+const redactedOutput = engine.detectAndRedactPII(mockCtx, 1280, 720, candidateElements);
+
+assertTrue(
+  'detectAndRedactPII Regions Output',
+  redactedOutput.length >= 3,
+  `Detected ${redactedOutput.length} PII/NER regions`
+);
+
+const allSolidBlack = mockCtx.fillRectCalls.every(c => c.fillStyle === '#000000');
+assertTrue(
+  'Solid Black Rectangle Side Effect',
+  allSolidBlack && mockCtx.fillRectCalls.length >= 3,
+  `Painted ${mockCtx.fillRectCalls.length} solid black (#000000) rectangles directly on canvas`
+);
+
+// ----------------------------------------------------------------------------
 // SUMMARY
 // ----------------------------------------------------------------------------
 console.log('\n================================================================');

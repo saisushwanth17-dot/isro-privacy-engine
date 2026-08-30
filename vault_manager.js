@@ -54,6 +54,14 @@ class VaultManager {
       UPIID: {
         positive: ['upi', 'vpa', 'paytm', 'gpay', 'phonepe', 'bhim', 'payment', 'transfer'],
         negative: ['domain', 'server']
+      },
+      PERSON_NER: {
+        positive: ['dr', 'prof', 'mr', 'mrs', 'ms', 'shri', 'smt', 'scientist', 'director', 'commander', 'name', 'officer'],
+        negative: ['file', 'class', 'function', 'variable']
+      },
+      CONFIDENTIAL_NER: {
+        positive: ['isro', 'drdo', 'secret', 'confidential', 'restricted', 'classified', 'defense', 'mission'],
+        negative: ['public', 'open-source']
       }
     };
   }
@@ -81,10 +89,8 @@ class VaultManager {
     const start = Math.max(0, matchIndex - windowSize);
     const end = Math.min(fullText.length, matchIndex + matchLength + windowSize);
 
-    // 50 chars before + 50 chars after
-    const prefix = fullText.slice(start, matchIndex).toLowerCase();
-    const suffix = fullText.slice(matchIndex + matchLength, end).toLowerCase();
-    const windowText = `${prefix} ${suffix}`;
+    // Context window: +/- 50 chars surrounding and including the match
+    const windowText = fullText.slice(start, end).toLowerCase();
 
     const catKey = category.toUpperCase();
     const dict = this.contextDictionary[catKey] || { positive: [], negative: [] };
