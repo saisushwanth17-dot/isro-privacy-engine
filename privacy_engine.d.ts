@@ -1,6 +1,6 @@
 /**
  * ISRO SIH26171 - On-Device Privacy & PII Redaction Engine
- * TypeScript Definition File for Member 3 Module
+ * TypeScript Definition File for Member 3 Module & VaultManager
  */
 
 export interface BoundingBox {
@@ -13,7 +13,7 @@ export interface BoundingBox {
 export interface SensitiveItem {
   id: string;
   type: 'INPUT_FIELD' | 'TEXT_PII' | 'MEDIA_PII' | 'CUSTOM_ML';
-  category: 'PASSWORD' | 'AUTH_CREDENTIAL' | 'AADHAAR' | 'PAN' | 'CREDITCARD' | 'INDIANPHONE' | 'EMAIL' | 'UPIID' | 'FACE_AVATAR';
+  category: string;
   boundingBox: BoundingBox;
   redactionLabel: string;
 }
@@ -45,6 +45,32 @@ export interface PayloadValidationResult {
   verifiedTimestamp: string;
 }
 
+export interface ContextAnalysisResult {
+  confidence: number;
+  shouldTokenize: boolean;
+  matchedPositive: string[];
+  matchedNegative: string[];
+  contextSnippet: string;
+}
+
+export interface FlushResult {
+  status: string;
+  clearedItemsCount: number;
+  activeVaultSize: number;
+  timestamp: string;
+}
+
+export declare class VaultManager {
+  constructor(options?: { contextWindowChars?: number; confidenceThreshold?: number; aliasPrefix?: string });
+  analyzeContext(fullText: string, matchIndex: number, matchLength: number, category: string): ContextAnalysisResult;
+  tokenize(rawSecret: string, category?: string): string;
+  tokenizeText(text: string, patternMap: Record<string, RegExp>): string;
+  detokenize(input: string): string;
+  hasAlias(alias: string): boolean;
+  getVaultSize(): number;
+  flushVault(): FlushResult;
+}
+
 export interface PrivacyEngineConfig {
   maskFillColor?: string;
   tokenTextColor?: string;
@@ -55,9 +81,13 @@ export interface PrivacyEngineConfig {
 }
 
 export declare class PrivacyEngine {
+  vault: VaultManager | null;
   constructor(config?: PrivacyEngineConfig);
   scanDOM(customDocument?: Document): SensitiveItem[];
   sanitizeViewport(rawScreenshot: string | HTMLImageElement, customMlBoxes?: SensitiveItem[], scaleFactor?: number): Promise<SanitizationResult>;
+  sanitizeAccessibilityTree(rawAccessibilityTree: any): any;
   validatePayload(outgoingJsonPayload: Record<string, any>): PayloadValidationResult;
+  detokenize(input: string): string;
+  flushVault(): FlushResult;
   getTelemetryMetrics(): { totalFramesProcessed: number; averageLatencyMs: number; latestRecord?: TelemetryRecord };
 }

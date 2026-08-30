@@ -30,7 +30,27 @@ class PrivacyEngine {
 
     const A11yClass = (typeof AccessibilitySanitizer !== 'undefined') ? AccessibilitySanitizer : (typeof require !== 'undefined' ? require('./accessibility_sanitizer.js') : null);
     this.a11ySanitizer = A11yClass ? new A11yClass(this.patterns) : null;
+
+    // Vault Manager: Bidirectional Format-Preserving Tokenizer & Detokenizer
+    const VaultClass = (typeof VaultManager !== 'undefined') ? VaultManager : (typeof require !== 'undefined' ? require('./vault_manager.js') : null);
+    this.vault = VaultClass ? new VaultClass({ aliasPrefix: 'SYS' }) : null;
+
     this.telemetryHistory = [];
+  }
+
+  /**
+   * Detokenizes a synthetic alias or command string using the secure vault
+   * e.g. "Type [SYS_PAN_01] into box" -> "Type ABCDE1234F into box"
+   */
+  detokenize(input) {
+    return this.vault ? this.vault.detokenize(input) : input;
+  }
+
+  /**
+   * Flushes and securely wipes the in-memory Vault
+   */
+  flushVault() {
+    return this.vault ? this.vault.flushVault() : { status: 'NO_VAULT' };
   }
 
   /**
@@ -79,12 +99,13 @@ class PrivacyEngine {
 
         // Password input
         if (type === 'password') {
+          const alias = this.vault ? this.vault.tokenize(val || 'PASSWORD_SECRET', 'PASSWORD') : `[SYS_PASSWORD_${counter}]`;
           sensitiveItems.push({
             id: `SEC_PASSWORD_${counter++}`,
             type: 'INPUT_FIELD',
             category: 'PASSWORD',
             boundingBox: { x: Math.round(rect.left), y: Math.round(rect.top), width: Math.round(rect.width), height: Math.round(rect.height) },
-            redactionLabel: `[REDACTED_PASSWORD_#${counter - 1}]`
+            redactionLabel: alias
           });
           return;
         }
@@ -97,27 +118,29 @@ class PrivacyEngine {
           else if (/pan/i.test(attrContext)) matchedCat = 'PAN';
           else if (/cvv|pin|otp/i.test(attrContext)) matchedCat = 'OTP_PIN';
 
+          const alias = this.vault ? this.vault.tokenize(val || matchedCat, matchedCat) : `[SYS_${matchedCat}_${counter}]`;
           sensitiveItems.push({
             id: `SEC_${matchedCat}_${counter++}`,
             type: 'INPUT_FIELD',
             category: matchedCat,
             boundingBox: { x: Math.round(rect.left), y: Math.round(rect.top), width: Math.round(rect.width), height: Math.round(rect.height) },
-            redactionLabel: `[REDACTED_${matchedCat}_#${counter - 1}]`
+            redactionLabel: alias
           });
           return;
         }
 
-        // Check if dynamic user typed text (e.g. Email in YouTube search) matches ANY PII regex!
+        // Check if dynamic user typed text (e.g. Email in search) matches ANY PII regex!
         if (val.length > 0) {
           for (const [category, regex] of Object.entries(this.patterns)) {
             regex.lastIndex = 0;
             if (regex.test(val)) {
+              const alias = this.vault ? this.vault.tokenize(val, category) : `[SYS_${category.toUpperCase()}_${counter}]`;
               sensitiveItems.push({
                 id: `SEC_${category.toUpperCase()}_${counter++}`,
                 type: 'INPUT_FIELD',
                 category: category.toUpperCase(),
                 boundingBox: { x: Math.round(rect.left), y: Math.round(rect.top), width: Math.round(rect.width), height: Math.round(rect.height) },
-                redactionLabel: `[REDACTED_${category.toUpperCase()}_#${counter - 1}]`
+                redactionLabel: alias
               });
               return;
             }
@@ -171,6 +194,7 @@ class PrivacyEngine {
           let match;
           while ((match = regex.exec(text)) !== null) {
             const matchedStr = match[0];
+            const alias = this.vault ? this.vault.tokenize(matchedStr, category) : `[SYS_${category.toUpperCase()}_${counter}]`;
             try {
               const range = customDocument.createRange();
               range.setStart(currentNode, match.index);
@@ -187,7 +211,7 @@ class PrivacyEngine {
                     width: Math.round(rect.width),
                     height: Math.round(rect.height)
                   },
-                  redactionLabel: `[REDACTED_${category.toUpperCase()}_#${counter - 1}]`
+                  redactionLabel: alias
                 });
               }
             } catch (err) {
@@ -202,7 +226,7 @@ class PrivacyEngine {
                   width: Math.round(pRect.width),
                   height: Math.round(pRect.height)
                 },
-                redactionLabel: `[REDACTED_${category.toUpperCase()}_#${counter - 1}]`
+                redactionLabel: alias
               });
             }
           }
@@ -300,7 +324,7 @@ class PrivacyEngine {
       let match;
       while ((match = regex.exec(serialized)) !== null) {
         const val = match[0];
-        if (!val.startsWith('[REDACTED_') && !val.startsWith('SEC_') && !val.startsWith('PII_') && !val.startsWith('[PROTECTED_') && !val.startsWith('[MASKED_')) {
+        if (!val.startsWith('[REDACTED_') && !val.startsWith('[SYS_') && !val.startsWith('SEC_') && !val.startsWith('PII_') && !val.startsWith('[PROTECTED_') && !val.startsWith('[MASKED_')) {
           violations.push({
             category: category.toUpperCase(),
             matchedSample: val.slice(0, 3) + '****' + val.slice(-2),
