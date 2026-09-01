@@ -89,6 +89,12 @@ export class PrivacyEngine {
     // Phase 1: Scan DOM for PII bounding boxes
     const domBoxes = this.scanDOM();
 
+    const KNOWN_PII_CATEGORIES = new Set([
+      'AADHAAR', 'PAN', 'CREDITCARD', 'CREDIT_CARD', 'INDIANPHONE', 'PHONE',
+      'EMAIL', 'UPIID', 'UPI', 'PASSWORD', 'PASSWORD_SECRET', 'AUTH_CREDENTIAL',
+      'OTP_PIN', 'PERSON', 'ADDRESS', 'FACE_AVATAR', 'PASSPORT', 'DRIVINGLICENSE'
+    ]);
+
     // Phase 2: Merge with ML-detected and DOM-scanned candidate elements
     const allBoxes = [...domBoxes, ...candidateElements.map(el => {
       let b = el.boundingBox;
@@ -101,7 +107,7 @@ export class PrivacyEngine {
         };
       }
       const cat = (el.category || el.type || 'ELEMENT').toUpperCase();
-      const isPreIdentifiedPii = el.redactionLabel || (cat !== 'ELEMENT' && cat !== 'BUTTON' && cat !== 'LINK' && cat !== 'HEADING' && cat !== 'SELECT');
+      const isPreIdentifiedPii = !!el.redactionLabel || KNOWN_PII_CATEGORIES.has(cat);
       return {
         id: el.id || el.label || 'ELEMENT',
         category: cat,
@@ -114,10 +120,12 @@ export class PrivacyEngine {
     // Phase 3: Canvas redaction pass
     for (const item of allBoxes) {
       const box = item.boundingBox;
-      const x = Math.max(0, Math.round(box.x * scale));
-      const y = Math.max(0, Math.round(box.y * scale));
-      const width  = Math.min(canvas.width  - x, Math.round(box.width  * scale));
-      const height = Math.min(canvas.height - y, Math.round(box.height * scale));
+      const sx = box.viewportWidth ? (canvas.width / box.viewportWidth) : 1.0;
+      const sy = box.viewportHeight ? (canvas.height / box.viewportHeight) : 1.0;
+      const x = Math.max(0, Math.round(box.x * sx));
+      const y = Math.max(0, Math.round(box.y * sy));
+      const width  = Math.min(canvas.width  - x, Math.round(box.width  * sx));
+      const height = Math.min(canvas.height - y, Math.round(box.height * sy));
       if (width <= 0 || height <= 0) continue;
 
       // Determine if this item needs PII text scan (for ML elements)
