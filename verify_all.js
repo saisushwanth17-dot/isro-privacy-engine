@@ -3,8 +3,11 @@
  * Run with: node verify_all.js
  */
 
-const PrivacyEngine = require('./privacy_engine.js');
-const VaultManager = require('./vault_manager.js');
+const PrivacyEngineModule = require('./privacy_engine.js');
+const PrivacyEngine = PrivacyEngineModule.PrivacyEngine || PrivacyEngineModule.default || PrivacyEngineModule;
+
+const VaultManagerModule = require('./vault_manager.js');
+const VaultManager = VaultManagerModule.VaultManager || VaultManagerModule.default || VaultManagerModule;
 
 console.log('================================================================');
 console.log('   ISRO PS 171 - PRIVACY ENGINE & VAULT VERIFICATION SUITE     ');

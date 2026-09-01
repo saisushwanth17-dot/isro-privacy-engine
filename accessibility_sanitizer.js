@@ -72,3 +72,6 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
   window.AccessibilitySanitizer = AccessibilitySanitizer;
 }
+
+export { AccessibilitySanitizer };
+export default AccessibilitySanitizer;

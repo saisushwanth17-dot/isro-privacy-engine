@@ -286,9 +286,17 @@ class VaultManager {
 }
 
 // Module Exports
+const SessionVaultManager = VaultManager;
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = VaultManager;
+  module.exports.VaultManager = VaultManager;
+  module.exports.SessionVaultManager = SessionVaultManager;
 }
 if (typeof window !== 'undefined') {
   window.VaultManager = VaultManager;
+  window.SessionVaultManager = SessionVaultManager;
 }
+
+export { VaultManager, SessionVaultManager };
+export default VaultManager;
